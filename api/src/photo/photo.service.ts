@@ -16,9 +16,10 @@ export class PhotoService {
     private readonly guessService: GuessService,
   ) {}
 
-  @Cron('0 0 * * *')
+  @Cron('0 * * * *')  // Toutes les heures à minute 0
   async generateDailyPhoto() {
     const date = new Date().toISOString().slice(0, 10);
+    this.logger.log(`🔄 Tentative de génération de photo pour ${date}`);
     
     // Vérifier si une photo est déjà assignée pour aujourd'hui
     const existingPhoto = await this.repo.findOneBy({ date });
@@ -27,10 +28,12 @@ export class PhotoService {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       await this.repo.update(existingPhoto.id, { date: yesterday.toISOString().slice(0, 10) });
+      this.logger.log(`📅 Photo existante déplacée à hier`);
     }
     
     // Supprimer les guesses pour la date du jour
     await this.guessService.deleteGuessesForDate(date);
+    this.logger.log(`🧹 Guesses supprimés pour ${date}`);
     
     // Sélectionner une photo existante non utilisée
     const unusedPhoto = await this.repo.findOne({
@@ -39,13 +42,13 @@ export class PhotoService {
     });
 
     if (!unusedPhoto) {
-      this.logger.error('No unused photos available');
+      this.logger.error('❌ Aucune photo non utilisée disponible');
       return;
     }
 
     // Mettre à jour la photo avec la date
     await this.repo.update(unusedPhoto.id, { date });
-    this.logger.log(`Assigned photo for ${date}`);
+    this.logger.log(`✅ Nouvelle photo assignée pour ${date}`);
   }
 
   async getToday(): Promise<Photo> {
