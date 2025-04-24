@@ -1,31 +1,11 @@
 import { PhotoService } from './photo.service';
-import { Photo } from './photo.entity';
+import { CreatePhotoDto } from './dto/create-photo.dto';
 export declare class PhotoController {
-    private svc;
-    constructor(svc: PhotoService);
-    today(): Promise<{
-        date: string;
-        imageUrl: string;
-        maxTries: number;
-    }>;
-}
-export declare class AdminController {
-    private readonly photoSvc;
-    constructor(photoSvc: PhotoService);
-    getTodayAdmin(): Promise<Photo>;
-    gen(): Promise<{
-        ok: boolean;
-    }>;
-    reset(): Promise<{
-        ok: boolean;
-    }>;
-    addPhoto(data: {
-        imageUrl: string;
-        solution: string;
-    }): Promise<Photo>;
-    listAllPhotos(): Promise<Photo[]>;
-    listUnusedPhotos(): Promise<Photo[]>;
-    deletePhoto(id: string): Promise<{
-        ok: boolean;
-    }>;
+    private readonly photoService;
+    constructor(photoService: PhotoService);
+    create(createPhotoDto: CreatePhotoDto): Promise<import("./entities/photo.entity").Photo>;
+    findAll(): Promise<import("./entities/photo.entity").Photo[]>;
+    generateTodayPhoto(): Promise<import("./entities/photo.entity").Photo | null>;
+    getTodayPhoto(): Promise<import("./entities/photo.entity").Photo | null>;
+    remove(id: string): any;
 }

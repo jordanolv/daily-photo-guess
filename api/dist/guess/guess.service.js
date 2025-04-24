@@ -11,76 +11,113 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GuessService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const typeorm_2 = require("typeorm");
-const guess_entity_1 = require("./guess.entity");
+const guess_entity_1 = require("./entities/guess.entity");
+const typeorm_1 = require("typeorm");
+const typeorm_2 = require("@nestjs/typeorm");
 const photo_service_1 = require("../photo/photo.service");
 let GuessService = class GuessService {
-    repo;
+    guessRepository;
     photoService;
-    constructor(repo, photoService) {
-        this.repo = repo;
+    constructor(guessRepository, photoService) {
+        this.guessRepository = guessRepository;
         this.photoService = photoService;
     }
-    async submit(userId, date, guess) {
-        const photo = await this.photoService.getToday();
-        if (!photo || photo.date !== date) {
-            throw new common_1.BadRequestException('Aucune photo pour cette date');
+    async create(createGuessDto) {
+        const { userId, attempt } = createGuessDto;
+        const photo = await this.photoService.findTodayPhoto();
+        if (!photo) {
+            throw new common_1.NotFoundException('Photo du jour introuvable');
         }
-        const hasWon = await this.repo.findOne({
-            where: { userId, date, correct: true }
+        const existingCorrect = await this.guessRepository.findOne({
+            where: { userId, isCorrect: true, photo: { id: photo.id } },
+            relations: ['photo']
         });
-        if (hasWon) {
-            throw new common_1.BadRequestException('Vous avez déjà trouvé cette photo');
+        if (existingCorrect) {
+            return {
+                status: 'correct',
+                guess: existingCorrect,
+                remainingAttempts: 0,
+                alreadyFound: true,
+            };
         }
-        const prior = await this.repo.count({ where: { userId, date } });
-        if (prior >= 3) {
-            throw new common_1.BadRequestException('Plus d\'essais restants');
-        }
-        const correct = guess.trim().toLowerCase() === photo.solution.toLowerCase();
-        const entry = this.repo.create({
-            userId, date, guess, correct,
-            timestamp: Date.now(),
+        const attemptCount = await this.guessRepository.count({
+            where: { userId, photo: { id: photo.id } },
+            relations: ['photo']
         });
-        await this.repo.save(entry);
+        if (attemptCount >= 3) {
+            throw new common_1.BadRequestException('Tu as déjà utilisé tes 3 essais pour cette photo 😬');
+        }
+        const isCorrect = photo.solution.trim().toLowerCase() === attempt.trim().toLowerCase();
+        const guess = this.guessRepository.create({
+            userId,
+            attempt,
+            isCorrect,
+            photo,
+        });
+        const savedGuess = await this.guessRepository.save(guess);
         return {
-            correct,
-            remainingTries: 3 - (prior + 1),
+            status: isCorrect ? 'correct' : 'wrong',
+            guess: savedGuess,
+            remainingAttempts: 2 - attemptCount,
+            alreadyFound: isCorrect,
         };
     }
-    async getLeaderboard(date) {
-        const result = await this.repo
-            .createQueryBuilder('g')
-            .select('g.userId', 'userId')
-            .addSelect('COUNT(*)', 'totalCorrect')
-            .where('g.correct = :correct', { correct: true })
-            .groupBy('g.userId')
-            .orderBy('totalCorrect', 'DESC')
-            .getRawMany();
-        console.log('Leaderboard result:', result);
-        return result;
-    }
-    async getTotalCorrectGuesses(date) {
-        return this.repo.count({
-            where: { date, correct: true }
+    findAll() {
+        return this.guessRepository.find({
+            relations: ['photo'],
         });
     }
-    async deleteGuessesForDate(date) {
-        await this.repo.delete({ date });
+    async findOne(id) {
+        const guess = await this.guessRepository.findOne({
+            where: { id },
+            relations: ['photo'],
+        });
+        if (!guess) {
+            throw new common_1.NotFoundException(`Guess with ID ${id} not found`);
+        }
+        return guess;
     }
-    async deleteAllGuesses() {
-        await this.repo.clear();
+    update(id, updateGuessDto) {
+        return `This action updates a #${id} guess`;
+    }
+    remove(id) {
+        return `This action removes a #${id} guess`;
+    }
+    removeAll() {
+        return this.guessRepository.delete({});
+    }
+    async getLeaderboard() {
+        return this.guessRepository
+            .createQueryBuilder('guess')
+            .select('guess.userId', 'userId')
+            .addSelect('COUNT(*)', 'total')
+            .where('guess.isCorrect = :isCorrect', { isCorrect: true })
+            .groupBy('guess.userId')
+            .orderBy('total', 'DESC')
+            .limit(10)
+            .getRawMany();
+    }
+    async countCorrectGuessesForToday() {
+        const photo = await this.photoService.findTodayPhoto();
+        if (!photo)
+            return 0;
+        return this.guessRepository.count({
+            where: {
+                photo: { id: photo.id },
+                isCorrect: true,
+            },
+            relations: ['photo'],
+        });
     }
 };
 exports.GuessService = GuessService;
 exports.GuessService = GuessService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(guess_entity_1.Guess)),
-    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => photo_service_1.PhotoService))),
-    __metadata("design:paramtypes", [typeorm_2.Repository,
-        photo_service_1.PhotoService])
+    __param(0, (0, typeorm_2.InjectRepository)(guess_entity_1.Guess)),
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_1.Repository !== "undefined" && typeorm_1.Repository) === "function" ? _a : Object, photo_service_1.PhotoService])
 ], GuessService);
 //# sourceMappingURL=guess.service.js.map

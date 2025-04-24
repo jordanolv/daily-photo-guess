@@ -12,97 +12,84 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var PhotoService_1;
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PhotoService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+const photo_entity_1 = require("./entities/photo.entity");
 const typeorm_2 = require("typeorm");
+const date_fns_1 = require("date-fns");
 const schedule_1 = require("@nestjs/schedule");
-const photo_entity_1 = require("./photo.entity");
-const guess_service_1 = require("../guess/guess.service");
 let PhotoService = PhotoService_1 = class PhotoService {
-    repo;
-    guessService;
+    photoRepository;
     logger = new common_1.Logger(PhotoService_1.name);
-    constructor(repo, guessService) {
-        this.repo = repo;
-        this.guessService = guessService;
+    constructor(photoRepository) {
+        this.photoRepository = photoRepository;
     }
-    async generateDailyPhoto() {
-        const date = new Date().toISOString().slice(0, 10);
-        const existingPhoto = await this.repo.findOneBy({ date });
-        if (existingPhoto) {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            await this.repo.update(existingPhoto.id, { date: yesterday.toISOString().slice(0, 10) });
-        }
-        await this.guessService.deleteGuessesForDate(date);
-        const unusedPhoto = await this.repo.findOne({
+    async create(createPhotoDto) {
+        const photo = this.photoRepository.create(createPhotoDto);
+        const saved = await this.photoRepository.save(photo);
+        this.logger.log(`🆕 Photo créée : ${saved.imageUrl} (solution: ${saved.solution})`);
+        return saved;
+    }
+    findAll() {
+        return this.photoRepository.find();
+    }
+    remove(id) {
+        return this.photoRepository.delete(id);
+    }
+    async findRandomWithoutDate() {
+        const photos = await this.photoRepository.find({
             where: { date: (0, typeorm_2.IsNull)() },
-            order: { id: 'ASC' }
         });
-        if (!unusedPhoto) {
-            this.logger.error('No unused photos available');
-            return;
+        if (photos.length === 0)
+            return null;
+        const randomIndex = Math.floor(Math.random() * photos.length);
+        return photos[randomIndex];
+    }
+    async generateTodayPhoto() {
+        const now = new Date();
+        const date = (0, date_fns_1.format)(now, 'yyyy-MM-dd');
+        const period = now.getHours() < 12 ? photo_entity_1.PhotoPeriod.MORNING : photo_entity_1.PhotoPeriod.AFTERNOON;
+        this.logger.log(`Tentative de génération de la photo du jour [${date} - ${period}]`);
+        const existing = await this.photoRepository.findOne({ where: { date, period } });
+        if (existing) {
+            this.logger.log(`Photo déjà existante pour aujourd'hui : ${existing.imageUrl}`);
+            return existing;
         }
-        await this.repo.update(unusedPhoto.id, { date });
-        this.logger.log(`Assigned photo for ${date}`);
-    }
-    async getToday() {
-        const date = new Date().toISOString().slice(0, 10);
-        const photo = await this.repo.findOneBy({ date });
-        if (!photo)
-            throw new Error(`No photo found for date ${date}`);
-        return photo;
-    }
-    async addPhoto(imageUrl, solution) {
-        return this.repo.save({ imageUrl, solution });
-    }
-    async listUnusedPhotos() {
-        return this.repo.find({
-            where: { date: (0, typeorm_2.IsNull)() },
-            order: { id: 'ASC' }
-        });
-    }
-    async listAllPhotos() {
-        return this.repo.find({
-            order: { id: 'ASC' }
-        });
-    }
-    async deletePhoto(id) {
-        const photo = await this.repo.findOneBy({ id });
-        if (!photo)
-            return;
-        if (photo.date === new Date().toISOString().slice(0, 10)) {
-            await this.guessService.deleteGuessesForDate(photo.date);
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            await this.repo.update(id, { date: yesterday.toISOString().slice(0, 10) });
-            await this.generateDailyPhoto();
+        const random = await this.findRandomWithoutDate();
+        if (!random) {
+            this.logger.warn('Aucune photo disponible sans date pour générer la photo du jour');
+            return null;
         }
-        else {
-            await this.repo.delete(id);
-        }
+        random.date = date;
+        random.period = period;
+        const saved = await this.photoRepository.save(random);
+        this.logger.log(`✅ Photo du jour générée : ${saved.imageUrl} (solution: ${saved.solution})`);
+        return saved;
     }
-    async resetAllPhotos() {
-        const today = new Date().toISOString().slice(0, 10);
-        await this.guessService.deleteGuessesForDate(today);
-        await this.repo.query('UPDATE photo SET date = NULL');
-        await this.generateDailyPhoto();
+    async findTodayPhoto() {
+        const now = new Date();
+        const date = (0, date_fns_1.format)(now, 'yyyy-MM-dd');
+        const period = now.getHours() < 12 ? photo_entity_1.PhotoPeriod.MORNING : photo_entity_1.PhotoPeriod.AFTERNOON;
+        return this.photoRepository.findOne({ where: { date, period } });
+    }
+    async handlePhotoGeneration() {
+        this.logger.debug('⏰ Déclenchement automatique du cron de génération de photo');
+        await this.generateTodayPhoto();
     }
 };
 exports.PhotoService = PhotoService;
 __decorate([
-    (0, schedule_1.Cron)('0 0 * * *'),
+    (0, schedule_1.Cron)('*/10 * * * * *'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], PhotoService.prototype, "generateDailyPhoto", null);
+], PhotoService.prototype, "handlePhotoGeneration", null);
 exports.PhotoService = PhotoService = PhotoService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(photo_entity_1.Photo)),
-    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => guess_service_1.GuessService))),
-    __metadata("design:paramtypes", [typeorm_2.Repository,
-        guess_service_1.GuessService])
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object])
 ], PhotoService);
 //# sourceMappingURL=photo.service.js.map

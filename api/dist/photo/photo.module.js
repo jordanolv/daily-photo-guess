@@ -8,24 +8,18 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PhotoModule = void 0;
 const common_1 = require("@nestjs/common");
-const schedule_1 = require("@nestjs/schedule");
-const typeorm_1 = require("@nestjs/typeorm");
-const photo_entity_1 = require("./photo.entity");
 const photo_service_1 = require("./photo.service");
 const photo_controller_1 = require("./photo.controller");
-const guess_module_1 = require("../guess/guess.module");
+const typeorm_1 = require("@nestjs/typeorm");
+const photo_entity_1 = require("./entities/photo.entity");
 let PhotoModule = class PhotoModule {
 };
 exports.PhotoModule = PhotoModule;
 exports.PhotoModule = PhotoModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            schedule_1.ScheduleModule.forRoot(),
-            typeorm_1.TypeOrmModule.forFeature([photo_entity_1.Photo]),
-            (0, common_1.forwardRef)(() => guess_module_1.GuessModule),
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([photo_entity_1.Photo])],
+        controllers: [photo_controller_1.PhotoController],
         providers: [photo_service_1.PhotoService],
-        controllers: [photo_controller_1.PhotoController, photo_controller_1.AdminController],
         exports: [photo_service_1.PhotoService],
     })
 ], PhotoModule);

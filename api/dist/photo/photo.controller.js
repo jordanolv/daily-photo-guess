@@ -12,112 +12,73 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AdminController = exports.PhotoController = void 0;
+exports.PhotoController = void 0;
 const common_1 = require("@nestjs/common");
 const photo_service_1 = require("./photo.service");
+const create_photo_dto_1 = require("./dto/create-photo.dto");
+const swagger_1 = require("@nestjs/swagger");
 let PhotoController = class PhotoController {
-    svc;
-    constructor(svc) {
-        this.svc = svc;
+    photoService;
+    constructor(photoService) {
+        this.photoService = photoService;
     }
-    async today() {
-        const photo = await this.svc.getToday();
-        return {
-            date: photo.date,
-            imageUrl: photo.imageUrl,
-            maxTries: 3,
-        };
+    create(createPhotoDto) {
+        return this.photoService.create(createPhotoDto);
+    }
+    findAll() {
+        return this.photoService.findAll();
+    }
+    generateTodayPhoto() {
+        return this.photoService.generateTodayPhoto();
+    }
+    getTodayPhoto() {
+        return this.photoService.findTodayPhoto();
+    }
+    remove(id) {
+        return this.photoService.remove(+id);
     }
 };
 exports.PhotoController = PhotoController;
 __decorate([
-    (0, common_1.Get)('today'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], PhotoController.prototype, "today", null);
-exports.PhotoController = PhotoController = __decorate([
-    (0, common_1.Controller)('api'),
-    __metadata("design:paramtypes", [photo_service_1.PhotoService])
-], PhotoController);
-let AdminController = class AdminController {
-    photoSvc;
-    constructor(photoSvc) {
-        this.photoSvc = photoSvc;
-    }
-    async getTodayAdmin() {
-        return this.photoSvc.getToday();
-    }
-    async gen() {
-        await this.photoSvc.generateDailyPhoto();
-        return { ok: true };
-    }
-    async reset() {
-        await this.photoSvc.resetAllPhotos();
-        return { ok: true };
-    }
-    async addPhoto(data) {
-        const photo = await this.photoSvc.addPhoto(data.imageUrl, data.solution);
-        return photo;
-    }
-    async listAllPhotos() {
-        return this.photoSvc.listAllPhotos();
-    }
-    async listUnusedPhotos() {
-        return this.photoSvc.listUnusedPhotos();
-    }
-    async deletePhoto(id) {
-        await this.photoSvc.deletePhoto(parseInt(id));
-        return { ok: true };
-    }
-};
-exports.AdminController = AdminController;
-__decorate([
-    (0, common_1.Get)('today'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "getTodayAdmin", null);
-__decorate([
-    (0, common_1.Post)('generate'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "gen", null);
-__decorate([
-    (0, common_1.Post)('reset'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "reset", null);
-__decorate([
-    (0, common_1.Post)('photos'),
+    (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Créer une photo' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "addPhoto", null);
+    __metadata("design:paramtypes", [create_photo_dto_1.CreatePhotoDto]),
+    __metadata("design:returntype", void 0)
+], PhotoController.prototype, "create", null);
 __decorate([
-    (0, common_1.Get)('photos'),
+    (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer toutes les photos' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "listAllPhotos", null);
+    __metadata("design:returntype", void 0)
+], PhotoController.prototype, "findAll", null);
 __decorate([
-    (0, common_1.Get)('photos/unused'),
+    (0, common_1.Get)('generate-today'),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupére la photo du jour' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "listUnusedPhotos", null);
+    __metadata("design:returntype", void 0)
+], PhotoController.prototype, "generateTodayPhoto", null);
 __decorate([
-    (0, common_1.Delete)('photos/:id'),
+    (0, common_1.Get)('today'),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupére la photo du jour' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], PhotoController.prototype, "getTodayPhoto", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Supprimer une photo' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "deletePhoto", null);
-exports.AdminController = AdminController = __decorate([
-    (0, common_1.Controller)('api/admin'),
+    __metadata("design:returntype", void 0)
+], PhotoController.prototype, "remove", null);
+exports.PhotoController = PhotoController = __decorate([
+    (0, swagger_1.ApiTags)('Photos'),
+    (0, common_1.Controller)('photo'),
     __metadata("design:paramtypes", [photo_service_1.PhotoService])
-], AdminController);
+], PhotoController);
 //# sourceMappingURL=photo.controller.js.map
