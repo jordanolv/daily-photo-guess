@@ -1,6 +1,9 @@
 <template>
   <div class="max-w-md mx-auto p-4">
     <div v-if="today" class="space-y-4">
+      <div class="text-center text-lg font-semibold text-green-600">
+        {{ totalCorrect }} bonne{{ totalCorrect > 1 ? 's' : '' }} réponse{{ totalCorrect > 1 ? 's' : '' }} aujourd'hui
+      </div>
       <img :src="today.imageUrl" alt="Photo du jour" class="rounded shadow" />
       <div class="flex space-x-2">
         <input
@@ -24,7 +27,7 @@
 <script setup lang="ts">
 import { v4 as uuidv4 } from 'uuid';
 import { ref, onMounted, computed } from 'vue';
-import { api } from '@/composables/useApi';
+import { api } from '../composables/useApi';
 import Leaderboard from './Leaderboard.vue';
 
 interface Today { date: string; imageUrl: string; maxTries: number }
@@ -40,6 +43,7 @@ if (!userId) {
 const today = ref<Today | null>(null);
 const guess = ref('');
 const feedback = ref('');
+const totalCorrect = ref(0);
 const feedbackClass = computed(() =>
   feedback.value.startsWith('Bravo') ? 'text-green-600' : 'text-red-600'
 );
@@ -49,13 +53,16 @@ async function loadToday() {
   try {
     const { data } = await api.get<Today>('today');
     today.value = data;
+    // Charger le nombre de bonnes réponses
+    const { data: correctCount } = await api.get<number>(`/guess/total-correct/${data.date}`);
+    totalCorrect.value = correctCount;
   } catch (err: any) {
     console.error('Erreur loadToday:', err);
     feedback.value = 'Impossible de charger la photo du jour';
   }
 }
 
-// soumission d’un guess avec userId unique
+// soumission d'un guess avec userId unique
 async function submit() {
   if (!today.value) return;
   try {
@@ -67,6 +74,11 @@ async function submit() {
     feedback.value = data.correct
       ? 'Bravo 🎉'
       : `Raté, il vous reste ${data.remainingTries} essais`;
+    
+    // Mettre à jour le nombre de bonnes réponses si la réponse est correcte
+    if (data.correct) {
+      totalCorrect.value++;
+    }
   } catch (e: any) {
     feedback.value = e.response?.data?.message || 'Erreur';
   }

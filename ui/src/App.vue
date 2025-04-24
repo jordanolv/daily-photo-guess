@@ -1,27 +1,11 @@
 <template>
-  <DailyPhoto />
-  <p>{{ poulet }}</p>
-  <button @click="increment">Increment</button>
-  {{ count }}
+  <router-view />
 </template>
 
-<script setup>
-import { ref, computed } from 'vue';
-
-const count = ref(0);
-const poulet = computed(() => {
-  if (count.value > 20) {
-    return 'Moumou est un champion';
-  } else if (count.value > 10) {
-    return 'Moumou rate le ballon';
-  } else {
-    return 'Moumou rate pas le ballon';
-  }
-});
-
-const increment = () => {
-  count.value++;
-};
-
-import DailyPhoto from './components/DailyPhoto.vue';
-</script>
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+</style>
