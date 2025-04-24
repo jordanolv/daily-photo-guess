@@ -31,7 +31,7 @@ jobs:
 
             if [ ! -d ".git" ]; then
               echo "📁 Clonage initial"
-              git clone -b main https://github.com/jordan-olv/daily-photo-guess.git .
+              git clone -b main https://github.com/jordanolv/daily-photo-guess.git .
             fi
 
             echo "📥 Synchronisation avec origin/main"
