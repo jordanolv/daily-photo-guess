@@ -45,6 +45,7 @@ jobs:
             echo "🛠 Backend – install & build"
             cd api
             npm install
+            npm install sqlite3 --save
             npm run build
             cd ..
 
