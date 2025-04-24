@@ -1,8 +1,13 @@
 <template>
   <div class="max-w-md mx-auto p-4">
     <div v-if="today" class="space-y-4">
-      <div class="text-center text-lg font-semibold text-green-600">
-        {{ totalCorrect }} bonne{{ totalCorrect > 1 ? 's' : '' }} réponse{{ totalCorrect > 1 ? 's' : '' }} aujourd'hui
+      <div class="text-center">
+        <div class="text-lg font-semibold text-green-600">
+          {{ totalCorrect }} bonne{{ totalCorrect > 1 ? 's' : '' }} réponse{{ totalCorrect > 1 ? 's' : '' }} aujourd'hui
+        </div>
+        <div class="text-sm text-gray-600">
+          Photo du {{ today.period === 'morning' ? 'matin' : 'midi' }}
+        </div>
       </div>
       <img :src="today.imageUrl" alt="Photo du jour" class="rounded shadow" />
       <div class="flex space-x-2">
@@ -30,7 +35,12 @@ import { ref, onMounted, computed } from 'vue';
 import { api } from '../composables/useApi';
 import Leaderboard from './Leaderboard.vue';
 
-interface Today { date: string; imageUrl: string; maxTries: number }
+interface Today { 
+  date: string; 
+  imageUrl: string; 
+  maxTries: number;
+  period: 'morning' | 'afternoon';
+}
 
 // 📌 Génération / récupération du userId
 let userId = localStorage.getItem('userId');

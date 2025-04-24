@@ -1,5 +1,4 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Photo } from './photo.entity';
 import { PhotoService } from './photo.service';
@@ -8,7 +7,6 @@ import { GuessModule } from '../guess/guess.module';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([Photo]),
     forwardRef(() => GuessModule),
   ],

@@ -11,12 +11,14 @@ export class PhotoController {
     date: string;
     imageUrl: string;
     maxTries: number;
+    period: 'morning' | 'afternoon';
   }> {
     const photo = await this.svc.getToday();
     return {
       date: photo.date,
       imageUrl: photo.imageUrl,
       maxTries: 3,
+      period: photo.period,
     };
   }
 }
