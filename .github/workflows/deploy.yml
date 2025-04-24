@@ -42,10 +42,10 @@ jobs:
             echo "🔧 Ajustement des droits"
             chown -R deploy:deploy ~/projects/daily-photo-guess/prod
 
-            echo "🛠 Backend – install & build"
+            echo "🛠 Backend – clean install & build"
             cd api
-            npm install
-            npm install sqlite3 --save
+            rm -rf node_modules package-lock.json
+            npm install --no-audit --legacy-peer-deps
             npm run build
             cd ..
 
