@@ -29,15 +29,15 @@ export class PhotoController {
     if (!file) {
       throw new BadRequestException('Aucune image fournie');
     }
-  
+
     const photo = await this.photoService.create({
       ...dto,
       imageUrl: `/uploads/${file.filename}`,
     });
-  
+
     return photo;
   }
-  
+
 
   @Get()
   @ApiOperation({ summary: 'Récupérer toutes les photos' })
@@ -62,6 +62,12 @@ export class PhotoController {
   // remove(@Param('id') id: string) {
   //   return this.photoService.remove(+id);
   // }
+
+  @Post('regenerate')
+  @ApiOperation({ summary: 'Regénère une nouvelle photo pour le moment actuel (admin)' })
+  regenerate() {
+    return this.photoService.regenerateTodayPhoto();
+  }
 
   @Post('reset-dates')
   async resetAllPhotos(): Promise<{ message: string; affected: number }> {

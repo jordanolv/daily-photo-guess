@@ -1,6 +1,6 @@
 // src/guess/entities/guess.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
-import { Photo } from '../../photo/entities/photo.entity';
+import { Photo, PhotoPeriod } from '../../photo/entities/photo.entity';
 
 @Entity()
 export class Guess {
@@ -11,14 +11,18 @@ export class Guess {
   userId: string;
 
   @Column()
-  attempt: string;
+  date: string; // format YYYY-MM-DD
 
-  @Column()
-  isCorrect: boolean;
+  @Column({ type: 'text' })
+  period: PhotoPeriod;
 
-  @ManyToOne(() => Photo, { onDelete: 'CASCADE' })
-  photo: Photo;
+  @Column({ default: 0 })
+  attemptCount: number;
+
+  @Column({ default: false })
+  found: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
 }
+

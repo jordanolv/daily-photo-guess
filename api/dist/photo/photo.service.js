@@ -18,13 +18,16 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const photo_entity_1 = require("./entities/photo.entity");
 const typeorm_2 = require("typeorm");
-const date_fns_1 = require("date-fns");
 const schedule_1 = require("@nestjs/schedule");
+const date_1 = require("../utils/date");
+const guess_entity_1 = require("../guess/entities/guess.entity");
 let PhotoService = PhotoService_1 = class PhotoService {
     photoRepository;
+    guessRepository;
     logger = new common_1.Logger(PhotoService_1.name);
-    constructor(photoRepository) {
+    constructor(photoRepository, guessRepository) {
         this.photoRepository = photoRepository;
+        this.guessRepository = guessRepository;
     }
     async create(createPhotoDto) {
         const photo = this.photoRepository.create(createPhotoDto);
@@ -40,7 +43,7 @@ let PhotoService = PhotoService_1 = class PhotoService {
     }
     async findRandomWithoutDate() {
         const photos = await this.photoRepository.find({
-            where: { date: (0, typeorm_2.IsNull)() },
+            where: { date: (0, typeorm_2.IsNull)(), period: (0, typeorm_2.IsNull)() },
         });
         if (photos.length === 0)
             return null;
@@ -48,9 +51,8 @@ let PhotoService = PhotoService_1 = class PhotoService {
         return photos[randomIndex];
     }
     async generateTodayPhoto() {
-        const now = new Date();
-        const date = (0, date_fns_1.format)(now, 'yyyy-MM-dd');
-        const period = now.getHours() < 12 ? photo_entity_1.PhotoPeriod.MORNING : photo_entity_1.PhotoPeriod.AFTERNOON;
+        const date = (0, date_1.getTodayDate)();
+        const period = (0, date_1.getCurrentPeriod)();
         this.logger.log(`Tentative de génération de la photo du jour [${date} - ${period}]`);
         const existing = await this.photoRepository.findOne({ where: { date, period } });
         if (existing) {
@@ -68,10 +70,21 @@ let PhotoService = PhotoService_1 = class PhotoService {
         this.logger.log(`✅ Photo du jour générée : ${saved.imageUrl} (solution: ${saved.solution})`);
         return saved;
     }
+    async regenerateTodayPhoto() {
+        const date = (0, date_1.getTodayDate)();
+        const period = (0, date_1.getCurrentPeriod)();
+        const current = await this.photoRepository.findOne({ where: { date, period } });
+        if (current) {
+            current.date = null;
+            current.period = null;
+            await this.photoRepository.save(current);
+        }
+        await this.guessRepository.delete({ date, period });
+        return this.generateTodayPhoto();
+    }
     async findTodayPhoto() {
-        const now = new Date();
-        const date = (0, date_fns_1.format)(now, 'yyyy-MM-dd');
-        const period = now.getHours() < 12 ? photo_entity_1.PhotoPeriod.MORNING : photo_entity_1.PhotoPeriod.AFTERNOON;
+        const date = (0, date_1.getTodayDate)();
+        const period = (0, date_1.getCurrentPeriod)();
         return this.photoRepository.findOne({ where: { date, period } });
     }
     async handlePhotoGeneration() {
@@ -101,6 +114,8 @@ __decorate([
 exports.PhotoService = PhotoService = PhotoService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(photo_entity_1.Photo)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(1, (0, typeorm_1.InjectRepository)(guess_entity_1.Guess)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository])
 ], PhotoService);
 //# sourceMappingURL=photo.service.js.map

@@ -35,6 +35,9 @@ let GuessController = class GuessController {
     getTodayCorrectCount() {
         return this.guessService.countCorrectGuessesForToday();
     }
+    getUserForToday(userId) {
+        return this.guessService.getUserForToday(userId);
+    }
     findOne(id) {
         return this.guessService.findOne(+id);
     }
@@ -51,6 +54,7 @@ let GuessController = class GuessController {
 exports.GuessController = GuessController;
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Soumettre une tentative pour la photo du jour' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_guess_dto_1.CreateGuessDto]),
@@ -58,6 +62,7 @@ __decorate([
 ], GuessController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Lister toutes les sessions (admin/dev only)' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -77,7 +82,16 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], GuessController.prototype, "getTodayCorrectCount", null);
 __decorate([
+    (0, common_1.Get)('today/status/:userId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Statut du joueur pour la photo du jour (restants, trouvé ?)' }),
+    __param(0, (0, common_1.Param)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], GuessController.prototype, "getUserForToday", null);
+__decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer une session de guess par ID' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -85,6 +99,7 @@ __decorate([
 ], GuessController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Mettre à jour une session de guess (admin/dev)' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -93,6 +108,7 @@ __decorate([
 ], GuessController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Supprimer une session de guess' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -100,11 +116,13 @@ __decorate([
 ], GuessController.prototype, "remove", null);
 __decorate([
     (0, common_1.Delete)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Supprimer toutes les sessions de guess (admin)' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], GuessController.prototype, "removeAll", null);
 exports.GuessController = GuessController = __decorate([
+    (0, swagger_1.ApiTags)('Guess'),
     (0, common_1.Controller)('guess'),
     __metadata("design:paramtypes", [guess_service_1.GuessService])
 ], GuessController);

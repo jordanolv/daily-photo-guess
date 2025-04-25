@@ -1,7 +1,7 @@
+import { Repository } from 'typeorm';
+import { Guess } from './entities/guess.entity';
 import { CreateGuessDto } from './dto/create-guess.dto';
 import { UpdateGuessDto } from './dto/update-guess.dto';
-import { Guess } from './entities/guess.entity';
-import { Repository } from 'typeorm';
 import { PhotoService } from '../photo/photo.service';
 type GuessResponse = {
     status: 'correct' | 'wrong';
@@ -16,13 +16,17 @@ export declare class GuessService {
     create(createGuessDto: CreateGuessDto): Promise<GuessResponse>;
     findAll(): Promise<Guess[]>;
     findOne(id: number): Promise<Guess>;
-    update(id: number, updateGuessDto: UpdateGuessDto): string;
-    remove(id: number): string;
-    removeAll(): Promise<import("typeorm").DeleteResult>;
+    update(id: number, updateGuessDto: UpdateGuessDto): Promise<Guess>;
+    remove(id: number): Promise<void>;
+    removeAll(): Promise<void>;
+    getUserForToday(userId: string): Promise<{
+        remainingAttempts: number;
+        alreadyFound: boolean;
+    }>;
+    countCorrectGuessesForToday(): Promise<number>;
     getLeaderboard(): Promise<{
         userId: string;
         total: number;
     }[]>;
-    countCorrectGuessesForToday(): Promise<number>;
 }
 export {};

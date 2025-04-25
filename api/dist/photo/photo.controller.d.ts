@@ -7,6 +7,7 @@ export declare class PhotoController {
     findAll(): Promise<import("./entities/photo.entity").Photo[]>;
     generateTodayPhoto(): Promise<import("./entities/photo.entity").Photo | null>;
     getTodayPhoto(): Promise<import("./entities/photo.entity").Photo | null>;
+    regenerate(): Promise<import("./entities/photo.entity").Photo | null>;
     resetAllPhotos(): Promise<{
         message: string;
         affected: number;

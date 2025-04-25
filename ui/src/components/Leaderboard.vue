@@ -1,16 +1,21 @@
 <template>
   <div>
-    <h2 class="text-center text-xl font-semibold mt-6 mb-2">🏆 Leaderboard</h2>
-    <ul class="bg-white rounded shadow divide-y divide-gray-200">
+    <h2 class="text-center text-2xl font-bold text-yellow-500 mt-6 mb-4">🏆 Leaderboard</h2>
+    <ul class="bg-white/5 backdrop-blur-md rounded-xl shadow-md divide-y divide-white/10">
       <li
         v-for="(entry, index) in leaderboard"
         :key="entry.userId"
-        class="px-4 py-2 flex justify-between"
+        class="px-5 py-3 flex justify-between items-center"
+        :class="{
+          'bg-yellow-400/10 text-yellow-300 font-bold': index === 0,
+          'bg-gray-400/10 text-gray-200 font-semibold': index === 1,
+          'bg-orange-400/10 text-orange-300 font-semibold': index === 2
+        }"
       >
-        <span class="font-medium">
-          #{{ index + 1 }} – {{ entry.userId }}
+        <span>
+          #{{ index + 1 }} – <span class="italic">{{ entry.userId.slice(0, -4) }}</span>
         </span>
-        <span class="text-blue-600 font-semibold">
+        <span class="text-right">
           {{ entry.total }} réponse{{ entry.total > 1 ? 's' : '' }}
         </span>
       </li>

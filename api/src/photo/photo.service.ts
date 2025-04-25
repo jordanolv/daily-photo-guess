@@ -7,7 +7,8 @@ import { Repository, IsNull } from 'typeorm';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { format } from 'date-fns';
 import { Cron } from '@nestjs/schedule';
-
+import { getTodayDate, getCurrentPeriod } from '../utils/date';
+import { Guess } from '../guess/entities/guess.entity';
 @Injectable()
 export class PhotoService {
   private readonly logger = new Logger(PhotoService.name);
@@ -15,6 +16,8 @@ export class PhotoService {
   constructor(
     @InjectRepository(Photo)
     private photoRepository: Repository<Photo>,
+    @InjectRepository(Guess)
+    private guessRepository: Repository<Guess>,
   ) { }
 
   async create(createPhotoDto: CreatePhotoDto): Promise<Photo> {
@@ -34,7 +37,7 @@ export class PhotoService {
 
   async findRandomWithoutDate(): Promise<Photo | null> {
     const photos = await this.photoRepository.find({
-      where: { date: IsNull() },
+      where: { date: IsNull(), period: IsNull() },
     });
 
     if (photos.length === 0) return null;
@@ -44,9 +47,8 @@ export class PhotoService {
   }
 
   async generateTodayPhoto(): Promise<Photo | null> {
-    const now = new Date();
-    const date = format(now, 'yyyy-MM-dd');
-    const period = now.getHours() < 12 ? PhotoPeriod.MORNING : PhotoPeriod.AFTERNOON;
+    const date = getTodayDate();
+    const period = getCurrentPeriod();
 
     this.logger.log(`Tentative de génération de la photo du jour [${date} - ${period}]`);
 
@@ -71,12 +73,27 @@ export class PhotoService {
     return saved;
   }
 
+  async regenerateTodayPhoto(): Promise<Photo | null> {
+    const date = getTodayDate();
+    const period = getCurrentPeriod();
+  
+    const current = await this.photoRepository.findOne({ where: { date, period } });
+  
+    if (current) {
+      current.date = null;
+      current.period = null;
+      await this.photoRepository.save(current);
+    }
+  
+    await this.guessRepository.delete({ date, period });
+    
+    return this.generateTodayPhoto();
+  }
 
   async findTodayPhoto(): Promise<Photo | null> {
-    const now = new Date();
-    const date = format(now, 'yyyy-MM-dd');
-    const period = now.getHours() < 12 ? PhotoPeriod.MORNING : PhotoPeriod.AFTERNOON;
-
+    const date = getTodayDate();
+    const period = getCurrentPeriod();
+    
     return this.photoRepository.findOne({ where: { date, period } });
   }
 

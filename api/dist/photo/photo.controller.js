@@ -44,6 +44,9 @@ let PhotoController = class PhotoController {
     getTodayPhoto() {
         return this.photoService.findTodayPhoto();
     }
+    regenerate() {
+        return this.photoService.regenerateTodayPhoto();
+    }
     async resetAllPhotos() {
         const affected = await this.photoService.resetAllPhotos();
         return {
@@ -94,6 +97,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], PhotoController.prototype, "getTodayPhoto", null);
+__decorate([
+    (0, common_1.Post)('regenerate'),
+    (0, swagger_1.ApiOperation)({ summary: 'Regénère une nouvelle photo pour le moment actuel (admin)' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], PhotoController.prototype, "regenerate", null);
 __decorate([
     (0, common_1.Post)('reset-dates'),
     __metadata("design:type", Function),

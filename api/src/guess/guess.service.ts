@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Guess } from './entities/guess.entity';
 import { CreateGuessDto } from './dto/create-guess.dto';
 import { UpdateGuessDto } from './dto/update-guess.dto';
-import { Guess } from './entities/guess.entity';
-import { Repository } from 'typeorm';
-import { Photo } from '../photo/entities/photo.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import { PhotoService } from '../photo/photo.service';
+import { getTodayDate, getCurrentPeriod } from '../utils/date';
 
 type GuessResponse = {
   status: 'correct' | 'wrong';
@@ -17,90 +17,110 @@ type GuessResponse = {
 @Injectable()
 export class GuessService {
   constructor(
-    @InjectRepository(Guess) private guessRepository: Repository<Guess>,
+    @InjectRepository(Guess)
+    private guessRepository: Repository<Guess>,
     private photoService: PhotoService,
   ) {}
 
   async create(createGuessDto: CreateGuessDto): Promise<GuessResponse> {
     const { userId, attempt } = createGuessDto;
-  
+    const date = getTodayDate();
+    const period = getCurrentPeriod();
+
     const photo = await this.photoService.findTodayPhoto();
     if (!photo) {
       throw new NotFoundException('Photo du jour introuvable');
     }
-  
-    // Vérifie si déjà trouvé
-    const existingCorrect = await this.guessRepository.findOne({
-      where: { userId, isCorrect: true, photo: { id: photo.id } },
-      relations: ['photo']
-    });
-  
-    if (existingCorrect) {
+
+    let guess = await this.guessRepository.findOne({ where: { userId, date, period } });
+
+    if (guess?.found) {
       return {
         status: 'correct',
-        guess: existingCorrect,
+        guess,
         remainingAttempts: 0,
         alreadyFound: true,
       };
     }
-  
-    // Compte les essais actuels
-    const attemptCount = await this.guessRepository.count({
-      where: { userId, photo: { id: photo.id } },
-      relations: ['photo']
-    });
-  
-    if (attemptCount >= 3) {
-      throw new BadRequestException('Tu as déjà utilisé tes 3 essais pour cette photo 😬');
+
+    if (!guess) {
+      guess = this.guessRepository.create({
+        userId,
+        date,
+        period,
+        attemptCount: 0,
+        found: false,
+      });
     }
-  
+
+    if (guess.attemptCount >= 3) {
+      throw new BadRequestException('Tu as déjà utilisé tes 3 essais pour cette période 😬');
+    }
+
+    guess.attemptCount++;
+
     const isCorrect = photo.solution.trim().toLowerCase() === attempt.trim().toLowerCase();
-  
-    const guess = this.guessRepository.create({
-      userId,
-      attempt,
-      isCorrect,
-      photo,
-    });
-  
-    const savedGuess = await this.guessRepository.save(guess);
-  
+    if (isCorrect) {
+      guess.found = true;
+    }
+
+    const saved = await this.guessRepository.save(guess);
+
     return {
       status: isCorrect ? 'correct' : 'wrong',
-      guess: savedGuess,
-      remainingAttempts: 2 - attemptCount,
-      alreadyFound: isCorrect,
+      guess: saved,
+      remainingAttempts: Math.max(0, 3 - saved.attemptCount),
+      alreadyFound: saved.found,
     };
   }
-  
-  findAll(): Promise<Guess[]> {
+
+  async findAll(): Promise<Guess[]> {
     return this.guessRepository.find({
-      relations: ['photo'],
+      order: { createdAt: 'DESC' },
     });
   }
-  
 
   async findOne(id: number): Promise<Guess> {
-    const guess = await this.guessRepository.findOne({
-      where: { id },
-      relations: ['photo'],
-    });
+    const guess = await this.guessRepository.findOne({ where: { id } });
     if (!guess) {
-      throw new NotFoundException(`Guess with ID ${id} not found`);
+      throw new NotFoundException(`Session de jeu #${id} introuvable`);
     }
     return guess;
   }
 
-  update(id: number, updateGuessDto: UpdateGuessDto) {
-    return `This action updates a #${id} guess`;
+  async update(id: number, updateGuessDto: UpdateGuessDto): Promise<Guess> {
+    const guess = await this.findOne(id);
+    Object.assign(guess, updateGuessDto);
+    return this.guessRepository.save(guess);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} guess`;
+  async remove(id: number): Promise<void> {
+    await this.guessRepository.delete(id);
   }
 
-  removeAll() {
-    return this.guessRepository.delete({});
+  async removeAll(): Promise<void> {
+    await this.guessRepository.clear();
+  }
+
+  async getUserForToday(userId: string) {
+    const date = getTodayDate();
+    const period = getCurrentPeriod();
+
+    const guess = await this.guessRepository.findOne({ where: { userId, date, period } });
+
+    return {
+      remainingAttempts: guess ? Math.max(0, 3 - guess.attemptCount) : 3,
+      alreadyFound: guess?.found || false,
+    };
+  }
+
+  async countCorrectGuessesForToday(): Promise<number> {
+    const date = getTodayDate();
+    const period = getCurrentPeriod();
+
+    return this.guessRepository.count({
+      where: { date, period, found: true },
+    });
   }
 
   async getLeaderboard(): Promise<{ userId: string; total: number }[]> {
@@ -108,23 +128,10 @@ export class GuessService {
       .createQueryBuilder('guess')
       .select('guess.userId', 'userId')
       .addSelect('COUNT(*)', 'total')
-      .where('guess.isCorrect = :isCorrect', { isCorrect: true })
+      .where('guess.found = true')
       .groupBy('guess.userId')
       .orderBy('total', 'DESC')
       .limit(10)
       .getRawMany();
-  }
-
-  async countCorrectGuessesForToday(): Promise<number> {
-    const photo = await this.photoService.findTodayPhoto(); 
-    if (!photo) return 0;
-  
-    return this.guessRepository.count({
-      where: {
-        photo: { id: photo.id },
-        isCorrect: true,
-      },
-      relations: ['photo'],
-    });
   }
 }
