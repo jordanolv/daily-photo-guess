@@ -12,7 +12,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var PhotoService_1;
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PhotoService = void 0;
 const common_1 = require("@nestjs/common");
@@ -79,6 +78,18 @@ let PhotoService = PhotoService_1 = class PhotoService {
         this.logger.debug('⏰ Déclenchement automatique du cron de génération de photo');
         await this.generateTodayPhoto();
     }
+    async resetAllPhotos() {
+        const result = await this.photoRepository
+            .createQueryBuilder()
+            .update()
+            .set({ date: null, period: null })
+            .execute();
+        return result.affected || 0;
+    }
+    async deleteAllPhotos() {
+        const result = await this.photoRepository.delete({});
+        return result.affected || 0;
+    }
 };
 exports.PhotoService = PhotoService;
 __decorate([
@@ -90,6 +101,6 @@ __decorate([
 exports.PhotoService = PhotoService = PhotoService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(photo_entity_1.Photo)),
-    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [typeorm_2.Repository])
 ], PhotoService);
 //# sourceMappingURL=photo.service.js.map

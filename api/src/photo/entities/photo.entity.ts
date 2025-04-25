@@ -10,9 +10,9 @@ export class Photo {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   @Index()
-  date: string;
+  date: string | null;  
 
   @Column()
   imageUrl: string;
@@ -24,5 +24,5 @@ export class Photo {
     type: 'varchar',
     nullable: true
   })
-  period: PhotoPeriod;
+  period: PhotoPeriod | null;
 }

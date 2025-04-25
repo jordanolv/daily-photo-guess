@@ -17,13 +17,23 @@ const common_1 = require("@nestjs/common");
 const photo_service_1 = require("./photo.service");
 const create_photo_dto_1 = require("./dto/create-photo.dto");
 const swagger_1 = require("@nestjs/swagger");
+const platform_express_1 = require("@nestjs/platform-express");
+const multer_1 = require("multer");
+const path_1 = require("path");
 let PhotoController = class PhotoController {
     photoService;
     constructor(photoService) {
         this.photoService = photoService;
     }
-    create(createPhotoDto) {
-        return this.photoService.create(createPhotoDto);
+    async create(file, dto) {
+        if (!file) {
+            throw new common_1.BadRequestException('Aucune image fournie');
+        }
+        const photo = await this.photoService.create({
+            ...dto,
+            imageUrl: `/uploads/${file.filename}`,
+        });
+        return photo;
     }
     findAll() {
         return this.photoService.findAll();
@@ -34,18 +44,34 @@ let PhotoController = class PhotoController {
     getTodayPhoto() {
         return this.photoService.findTodayPhoto();
     }
-    remove(id) {
-        return this.photoService.remove(+id);
+    async resetAllPhotos() {
+        const affected = await this.photoService.resetAllPhotos();
+        return {
+            message: `✅ ${affected} photos ont été réinitialisées.`,
+            affected
+        };
+    }
+    deleteAllPhotos() {
+        return this.photoService.deleteAllPhotos();
     }
 };
 exports.PhotoController = PhotoController;
 __decorate([
     (0, common_1.Post)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Créer une photo' }),
-    __param(0, (0, common_1.Body)()),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        storage: (0, multer_1.diskStorage)({
+            destination: './uploads',
+            filename: (req, file, cb) => {
+                const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${(0, path_1.extname)(file.originalname)}`;
+                cb(null, uniqueName);
+            },
+        }),
+    })),
+    __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_photo_dto_1.CreatePhotoDto]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [Object, create_photo_dto_1.CreatePhotoDto]),
+    __metadata("design:returntype", Promise)
 ], PhotoController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
@@ -69,13 +95,18 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PhotoController.prototype, "getTodayPhoto", null);
 __decorate([
-    (0, common_1.Delete)(':id'),
-    (0, swagger_1.ApiOperation)({ summary: 'Supprimer une photo' }),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Post)('reset-dates'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], PhotoController.prototype, "resetAllPhotos", null);
+__decorate([
+    (0, common_1.Delete)('delete-all'),
+    (0, swagger_1.ApiOperation)({ summary: 'Supprimer toutes les photos' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], PhotoController.prototype, "remove", null);
+], PhotoController.prototype, "deleteAllPhotos", null);
 exports.PhotoController = PhotoController = __decorate([
     (0, swagger_1.ApiTags)('Photos'),
     (0, common_1.Controller)('photo'),

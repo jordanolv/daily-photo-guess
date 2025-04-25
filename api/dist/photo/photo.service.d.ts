@@ -7,9 +7,11 @@ export declare class PhotoService {
     constructor(photoRepository: Repository<Photo>);
     create(createPhotoDto: CreatePhotoDto): Promise<Photo>;
     findAll(): Promise<Photo[]>;
-    remove(id: number): any;
+    remove(id: number): Promise<import("typeorm").DeleteResult>;
     findRandomWithoutDate(): Promise<Photo | null>;
     generateTodayPhoto(): Promise<Photo | null>;
     findTodayPhoto(): Promise<Photo | null>;
     handlePhotoGeneration(): Promise<void>;
+    resetAllPhotos(): Promise<number>;
+    deleteAllPhotos(): Promise<number>;
 }

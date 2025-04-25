@@ -7,7 +7,7 @@
 
       <img :src="today.imageUrl" alt="Photo du jour" class="rounded shadow mb-4" />
 
-      <div class="flex space-x-2 mb-2">
+      <div v-if="canSubmit" class="flex space-x-2 mb-2">
         <input
           v-model="guess"
           @keyup.enter="submit"
@@ -69,7 +69,10 @@ const feedbackClass = computed(() =>
 async function loadToday() {
   try {
     const { data } = await api.get('/photo/today')
-    today.value = data
+    today.value = {
+  ...data,
+  imageUrl: `${import.meta.env.VITE_API_URL}${data.imageUrl}`
+}
 
     const { data: correctCount } = await api.get<number>('/guess/today/correct-count')
     totalCorrect.value = correctCount
@@ -102,6 +105,11 @@ async function submit() {
     feedback.value = err.response?.data?.message || 'Erreur lors de la soumission'
   }
 }
+
+const canSubmit = computed(() =>
+  remaining.value !== 0 && !feedback.value.startsWith('Bravo')
+)
+
 
 onMounted(loadToday)
 </script>

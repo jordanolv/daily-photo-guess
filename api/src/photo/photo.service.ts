@@ -86,4 +86,20 @@ export class PhotoService {
     this.logger.debug('⏰ Déclenchement automatique du cron de génération de photo');
     await this.generateTodayPhoto();
   }
+
+  async resetAllPhotos(): Promise<number> {
+    const result = await this.photoRepository
+      .createQueryBuilder()
+      .update()
+      .set({ date: null, period: null })
+      .execute();
+  
+    return result.affected || 0;
+  }
+
+  async deleteAllPhotos(): Promise<number> {
+    const result = await this.photoRepository.delete({});
+    return result.affected || 0;
+  }
+  
 }

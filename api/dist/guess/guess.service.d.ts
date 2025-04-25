@@ -18,7 +18,7 @@ export declare class GuessService {
     findOne(id: number): Promise<Guess>;
     update(id: number, updateGuessDto: UpdateGuessDto): string;
     remove(id: number): string;
-    removeAll(): any;
+    removeAll(): Promise<import("typeorm").DeleteResult>;
     getLeaderboard(): Promise<{
         userId: string;
         total: number;

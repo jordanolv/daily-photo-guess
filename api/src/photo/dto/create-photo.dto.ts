@@ -3,11 +3,13 @@ import { PhotoPeriod } from '../entities/photo.entity';
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class CreatePhotoDto {
-  @ApiProperty()
-  @IsString()
-  imageUrl: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  imageUrl?: string;
 
   @ApiProperty()
   @IsString()
   solution: string;
 }
+
+

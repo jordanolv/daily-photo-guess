@@ -8,6 +8,8 @@ import { PhotoModule } from './photo/photo.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { GuessModule } from './guess/guess.module';
 import { Guess } from './guess/entities/guess.entity';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: path.resolve(__dirname, '..', '.env'), }),
@@ -19,6 +21,10 @@ import { Guess } from './guess/entities/guess.entity';
       synchronize: true,
     }),
 
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
     ScheduleModule.forRoot(),
     PhotoModule,
     GuessModule,

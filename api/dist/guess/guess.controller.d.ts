@@ -19,5 +19,5 @@ export declare class GuessController {
     findOne(id: string): Promise<import("./entities/guess.entity").Guess>;
     update(id: string, updateGuessDto: UpdateGuessDto): string;
     remove(id: string): string;
-    removeAll(): any;
+    removeAll(): Promise<import("typeorm").DeleteResult>;
 }
