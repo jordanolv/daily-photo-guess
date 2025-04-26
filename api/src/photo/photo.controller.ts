@@ -6,6 +6,7 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { Photo } from './entities/photo.entity';
 
 @ApiTags('Photos')
 @Controller('photo')
@@ -53,15 +54,15 @@ export class PhotoController {
 
   @Get('today')
   @ApiOperation({ summary: 'Récupére la photo du jour' })
-  getTodayPhoto() {
+  getTodayPhoto(): Promise<Photo | null> {
     return this.photoService.findTodayPhoto();
   }
 
-  // @Delete(':id')
-  // @ApiOperation({ summary: 'Supprimer une photo' })
-  // remove(@Param('id') id: string) {
-  //   return this.photoService.remove(+id);
-  // }
+  @Delete(':id')
+  @ApiOperation({ summary: 'Supprimer une photo' })
+  remove(@Param('id') id: string) {
+    return this.photoService.remove(+id);
+  }
 
   @Post('regenerate')
   @ApiOperation({ summary: 'Regénère une nouvelle photo pour le moment actuel (admin)' })

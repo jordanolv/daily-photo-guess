@@ -14,12 +14,9 @@
               <p>Solution: {{ todayPhoto.solution }}</p>
             </div>
           </div>
-          <div class="actions">
+          <div class="actions w-full flex justify-center">
             <button @click="regeneratePhoto" class="action-button">
               Régénérer la photo
-            </button>
-            <button @click="resetAllPhotos" class="action-button reset-button">
-              Reset toutes les photos
             </button>
           </div>
         </div>
@@ -32,13 +29,7 @@
           <form @submit.prevent="addPhoto" class="add-photo-form">
             <div class="form-group">
               <label>URL de l'image</label>
-              <input 
-                v-model="newPhoto.imageUrl" 
-                type="text" 
-                placeholder="https://example.com/image.jpg"
-                required
-                class="form-input"
-              />
+              <input type="file" ref="fileInput" accept="image/*" class="form-input" />
             </div>
             <div class="form-group">
               <label>Solution</label>
@@ -130,13 +121,14 @@ const todayPhoto = ref<Photo | null>(null)
 const unusedPhotos = ref<Photo[]>([])
 const allPhotos = ref<Photo[]>([])
 const activeTab = ref<'unused' | 'all'>('unused')
+const fileInput = ref<HTMLInputElement | null>(null)
 const stats = ref<Stats>({
   totalPhotos: 0,
   unusedPhotos: 0
 })
 
 const newPhoto = ref({
-  imageUrl: '',
+  file: null as File | null,
   solution: ''
 })
 
@@ -146,28 +138,31 @@ const displayedPhotos = computed(() => {
 
 const fetchTodayPhoto = async () => {
   try {
-    const { data } = await api.get('/admin/today')
+    const { data } = await api.get('/photo/today')
     todayPhoto.value = data
+    if (todayPhoto.value) {
+      todayPhoto.value.imageUrl = `${import.meta.env.VITE_API_URL}${todayPhoto.value.imageUrl}`
+    }
   } catch (error) {
     console.error('Erreur lors de la récupération de la photo du jour:', error)
   }
 }
 
-const fetchUnusedPhotos = async () => {
-  try {
-    const { data } = await api.get('/admin/photos/unused')
-    unusedPhotos.value = data
-    stats.value.unusedPhotos = data.length
-  } catch (error) {
-    console.error('Erreur lors de la récupération des photos non utilisées:', error)
-  }
-}
-
 const fetchAllPhotos = async () => {
   try {
-    const { data } = await api.get('/admin/photos')
+    const { data } = await api.get('/photo')
     allPhotos.value = data
-    stats.value.totalPhotos = data.length
+
+    unusedPhotos.value = [];
+    for (const photo of allPhotos.value) {
+      if (!photo.date) {
+        unusedPhotos.value.push(photo)
+      }
+      photo.imageUrl = `${import.meta.env.VITE_API_URL}${photo.imageUrl}`
+    }
+    stats.value.totalPhotos = allPhotos.value.length
+    stats.value.unusedPhotos = unusedPhotos.value.length
+
   } catch (error) {
     console.error('Erreur lors de la récupération de toutes les photos:', error)
   }
@@ -176,7 +171,6 @@ const fetchAllPhotos = async () => {
 const refreshAll = async () => {
   await Promise.all([
     fetchTodayPhoto(),
-    fetchUnusedPhotos(),
     fetchAllPhotos()
   ])
 }
@@ -190,24 +184,31 @@ const regeneratePhoto = async () => {
   }
 }
 
-const resetAllPhotos = async () => {
-  if (!confirm('Êtes-vous sûr de vouloir reset toutes les photos ?')) return;
-  
-  try {
-    await api.post('/admin/reset')
-    await refreshAll()
-  } catch (error) {
-    console.error('Erreur lors du reset des photos:', error)
-  }
-}
 
 const addPhoto = async () => {
+  console.log(fileInput.value?.files?.[0])
+  if (!fileInput.value?.files?.[0]) {
+    console.error('Aucun fichier sélectionné');
+    return;
+  }
+
   try {
-    await api.post('/admin/photos', newPhoto.value)
-    newPhoto.value = { imageUrl: '', solution: '' }
-    await refreshAll()
+    const formData = new FormData();
+    formData.append('file', fileInput.value.files[0]);
+    formData.append('solution', newPhoto.value.solution);
+
+    await api.post('/photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    console.log('Photo ajoutée avec succès');
+    newPhoto.value = { file: null, solution: '' };
+    fileInput.value.value = '';
+    await refreshAll();
   } catch (error) {
-    console.error('Erreur lors de l\'ajout de la photo:', error)
+    console.error('Erreur lors de l\'ajout de la photo:', error);
   }
 }
 
@@ -215,7 +216,7 @@ const deletePhoto = async (id: number) => {
   if (!confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')) return;
   
   try {
-    await api.delete(`/admin/photos/${id}`)
+    await api.delete(`/photo/${id}`)
     await refreshAll()
   } catch (error) {
     console.error('Erreur lors de la suppression de la photo:', error)

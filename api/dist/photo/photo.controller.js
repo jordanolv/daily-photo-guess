@@ -44,6 +44,9 @@ let PhotoController = class PhotoController {
     getTodayPhoto() {
         return this.photoService.findTodayPhoto();
     }
+    remove(id) {
+        return this.photoService.remove(+id);
+    }
     regenerate() {
         return this.photoService.regenerateTodayPhoto();
     }
@@ -95,8 +98,16 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Récupére la photo du jour' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], PhotoController.prototype, "getTodayPhoto", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Supprimer une photo' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], PhotoController.prototype, "remove", null);
 __decorate([
     (0, common_1.Post)('regenerate'),
     (0, swagger_1.ApiOperation)({ summary: 'Regénère une nouvelle photo pour le moment actuel (admin)' }),
