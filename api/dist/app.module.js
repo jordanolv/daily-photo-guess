@@ -10,10 +10,14 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
-const photo_module_1 = require("./photo/photo.module");
-const guess_module_1 = require("./guess/guess.module");
-const leaderboard_module_1 = require("./gateway/leaderboard.module");
 const path = require("path");
+const photo_entity_1 = require("./photo/entities/photo.entity");
+const photo_module_1 = require("./photo/photo.module");
+const schedule_1 = require("@nestjs/schedule");
+const guess_module_1 = require("./guess/guess.module");
+const guess_entity_1 = require("./guess/entities/guess.entity");
+const serve_static_1 = require("@nestjs/serve-static");
+const path_1 = require("path");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -24,12 +28,16 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'sqlite',
                 database: 'db.sqlite',
-                entities: [__dirname + '/**/*.entity{.ts,.js}'],
+                entities: [photo_entity_1.Photo, guess_entity_1.Guess],
                 synchronize: true,
             }),
+            serve_static_1.ServeStaticModule.forRoot({
+                rootPath: (0, path_1.join)(__dirname, '..', 'uploads'),
+                serveRoot: '/uploads',
+            }),
+            schedule_1.ScheduleModule.forRoot(),
             photo_module_1.PhotoModule,
             guess_module_1.GuessModule,
-            leaderboard_module_1.LeaderboardModule,
         ],
     })
 ], AppModule);

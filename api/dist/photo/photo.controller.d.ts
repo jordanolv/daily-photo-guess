@@ -1,31 +1,18 @@
 import { PhotoService } from './photo.service';
-import { Photo } from './photo.entity';
+import { CreatePhotoDto } from './dto/create-photo.dto';
+import { Photo } from './entities/photo.entity';
 export declare class PhotoController {
-    private svc;
-    constructor(svc: PhotoService);
-    today(): Promise<{
-        date: string;
-        imageUrl: string;
-        maxTries: number;
+    private readonly photoService;
+    constructor(photoService: PhotoService);
+    create(file: Express.Multer.File, dto: CreatePhotoDto): Promise<Photo>;
+    findAll(): Promise<Photo[]>;
+    generateTodayPhoto(): Promise<Photo | null>;
+    getTodayPhoto(): Promise<Photo | null>;
+    remove(id: string): Promise<import("typeorm").DeleteResult>;
+    regenerate(): Promise<Photo | null>;
+    resetAllPhotos(): Promise<{
+        message: string;
+        affected: number;
     }>;
-}
-export declare class AdminController {
-    private readonly photoSvc;
-    constructor(photoSvc: PhotoService);
-    getTodayAdmin(): Promise<Photo>;
-    gen(): Promise<{
-        ok: boolean;
-    }>;
-    reset(): Promise<{
-        ok: boolean;
-    }>;
-    addPhoto(data: {
-        imageUrl: string;
-        solution: string;
-    }): Promise<Photo>;
-    listAllPhotos(): Promise<Photo[]>;
-    listUnusedPhotos(): Promise<Photo[]>;
-    deletePhoto(id: string): Promise<{
-        ok: boolean;
-    }>;
+    deleteAllPhotos(): Promise<number>;
 }

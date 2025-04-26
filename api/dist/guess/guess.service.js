@@ -16,70 +16,113 @@ exports.GuessService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const guess_entity_1 = require("./guess.entity");
+const guess_entity_1 = require("./entities/guess.entity");
 const photo_service_1 = require("../photo/photo.service");
+const date_1 = require("../utils/date");
 let GuessService = class GuessService {
-    repo;
+    guessRepository;
     photoService;
-    constructor(repo, photoService) {
-        this.repo = repo;
+    constructor(guessRepository, photoService) {
+        this.guessRepository = guessRepository;
         this.photoService = photoService;
     }
-    async submit(userId, date, guess) {
-        const photo = await this.photoService.getToday();
-        if (!photo || photo.date !== date) {
-            throw new common_1.BadRequestException('Aucune photo pour cette date');
+    async create(createGuessDto) {
+        const { userId, attempt } = createGuessDto;
+        const date = (0, date_1.getTodayDate)();
+        const period = (0, date_1.getCurrentPeriod)();
+        const photo = await this.photoService.findTodayPhoto();
+        if (!photo) {
+            throw new common_1.NotFoundException('Photo du jour introuvable');
         }
-        const hasWon = await this.repo.findOne({
-            where: { userId, date, correct: true }
-        });
-        if (hasWon) {
-            throw new common_1.BadRequestException('Vous avez déjà trouvé cette photo');
+        let guess = await this.guessRepository.findOne({ where: { userId, date, period } });
+        if (guess?.found) {
+            return {
+                status: 'correct',
+                guess,
+                remainingAttempts: 0,
+                alreadyFound: true,
+            };
         }
-        const prior = await this.repo.count({ where: { userId, date } });
-        if (prior >= 3) {
-            throw new common_1.BadRequestException('Plus d\'essais restants');
+        if (!guess) {
+            guess = this.guessRepository.create({
+                userId,
+                date,
+                period,
+                attemptCount: 0,
+                found: false,
+            });
         }
-        const correct = guess.trim().toLowerCase() === photo.solution.toLowerCase();
-        const entry = this.repo.create({
-            userId, date, guess, correct,
-            timestamp: Date.now(),
-        });
-        await this.repo.save(entry);
+        if (guess.attemptCount >= 3) {
+            throw new common_1.BadRequestException('Tu as déjà utilisé tes 3 essais pour cette période 😬');
+        }
+        guess.attemptCount++;
+        const isCorrect = photo.solution.trim().toLowerCase() === attempt.trim().toLowerCase();
+        if (isCorrect) {
+            guess.found = true;
+        }
+        const saved = await this.guessRepository.save(guess);
         return {
-            correct,
-            remainingTries: 3 - (prior + 1),
+            status: isCorrect ? 'correct' : 'wrong',
+            guess: saved,
+            remainingAttempts: Math.max(0, 3 - saved.attemptCount),
+            alreadyFound: saved.found,
         };
     }
-    async getLeaderboard(date) {
-        const result = await this.repo
-            .createQueryBuilder('g')
-            .select('g.userId', 'userId')
-            .addSelect('COUNT(*)', 'totalCorrect')
-            .where('g.correct = :correct', { correct: true })
-            .groupBy('g.userId')
-            .orderBy('totalCorrect', 'DESC')
-            .getRawMany();
-        console.log('Leaderboard result:', result);
-        return result;
-    }
-    async getTotalCorrectGuesses(date) {
-        return this.repo.count({
-            where: { date, correct: true }
+    async findAll() {
+        return this.guessRepository.find({
+            order: { createdAt: 'DESC' },
         });
     }
-    async deleteGuessesForDate(date) {
-        await this.repo.delete({ date });
+    async findOne(id) {
+        const guess = await this.guessRepository.findOne({ where: { id } });
+        if (!guess) {
+            throw new common_1.NotFoundException(`Session de jeu #${id} introuvable`);
+        }
+        return guess;
     }
-    async deleteAllGuesses() {
-        await this.repo.clear();
+    async update(id, updateGuessDto) {
+        const guess = await this.findOne(id);
+        Object.assign(guess, updateGuessDto);
+        return this.guessRepository.save(guess);
+    }
+    async remove(id) {
+        await this.guessRepository.delete(id);
+    }
+    async removeAll() {
+        await this.guessRepository.clear();
+    }
+    async getUserForToday(userId) {
+        const date = (0, date_1.getTodayDate)();
+        const period = (0, date_1.getCurrentPeriod)();
+        const guess = await this.guessRepository.findOne({ where: { userId, date, period } });
+        return {
+            remainingAttempts: guess ? Math.max(0, 3 - guess.attemptCount) : 3,
+            alreadyFound: guess?.found || false,
+        };
+    }
+    async countCorrectGuessesForToday() {
+        const date = (0, date_1.getTodayDate)();
+        const period = (0, date_1.getCurrentPeriod)();
+        return this.guessRepository.count({
+            where: { date, period, found: true },
+        });
+    }
+    async getLeaderboard() {
+        return this.guessRepository
+            .createQueryBuilder('guess')
+            .select('guess.userId', 'userId')
+            .addSelect('COUNT(*)', 'total')
+            .where('guess.found = true')
+            .groupBy('guess.userId')
+            .orderBy('total', 'DESC')
+            .limit(10)
+            .getRawMany();
     }
 };
 exports.GuessService = GuessService;
 exports.GuessService = GuessService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(guess_entity_1.Guess)),
-    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => photo_service_1.PhotoService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         photo_service_1.PhotoService])
 ], GuessService);
