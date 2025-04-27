@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'daily-photo-api',
       cwd: './api',
-      script: 'dist/main.js',
+      script: 'dist/src/main.js',
       env: {
         PORT: 6049,
         NODE_ENV: 'production'
