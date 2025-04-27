@@ -154,6 +154,7 @@ const fetchAllPhotos = async () => {
     allPhotos.value = data
 
     unusedPhotos.value = [];
+    allPhotos.value = [];
     for (const photo of allPhotos.value) {
       if (!photo.date) {
         unusedPhotos.value.push(photo)
