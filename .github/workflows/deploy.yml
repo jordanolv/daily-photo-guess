@@ -31,12 +31,12 @@ jobs:
 
             if [ ! -d ".git" ]; then
               echo "📁 Clonage initial"
-              git clone -b main https://github.com/jordanolv/daily-photo-guess.git .
+              git clone -b master https://github.com/jordanolv/daily-photo-guess.git .
             fi
 
-            echo "📥 Synchronisation avec origin/main"
-            git fetch --prune origin main
-            git reset --hard origin/main
+            echo "📥 Synchronisation avec origin/master"
+            git fetch --prune origin master
+            git reset --hard origin/master
             git clean -fd
 
             echo "🔧 Ajustement des droits"
