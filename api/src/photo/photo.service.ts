@@ -97,8 +97,8 @@ export class PhotoService {
     return this.photoRepository.findOne({ where: { date, period } });
   }
 
-  // @Cron('0 0 0,12 * * *') // ← à 00h00 et à 12h00 chaque jour
-  @Cron('*/10 * * * * *') // test toutes les 10 secondes
+  @Cron('0 0 0,12 * * *') // ← à 00h00 et à 12h00 chaque jour
+  // @Cron('*/10 * * * * *') // test toutes les 10 secondes
   async handlePhotoGeneration() {
     this.logger.debug('⏰ Déclenchement automatique du cron de génération de photo');
     await this.generateTodayPhoto();
