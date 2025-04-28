@@ -10,4 +10,9 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  preview: {
+    allowedHosts: ['mystery-pic.com', 'www.mystery-pic.com'],
+    host: true,
+    port: 6050,
+  },
 })
