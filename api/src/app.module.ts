@@ -16,7 +16,7 @@ import { join } from 'path';
 
     TypeOrmModule.forRoot({
       type: 'sqlite',
-      database: 'db.sqlite',
+      database: '/home/deploy/dbs/daily-photo-guess.sqlite',
       entities: [Photo, Guess],
       synchronize: true,
     }),
