@@ -24,7 +24,15 @@ import { join } from 'path';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'uploads'),
       serveRoot: '/uploads',
-    }),
+    },
+    {
+      rootPath: join(__dirname, '..', 'uploads'), // Où sont stockées tes images
+      serveRoot: '/uploads', // Depuis quelle URL publique
+    },
+    {
+      rootPath: join(__dirname, '..', '..', 'ui', 'dist'), // Ton front compilé
+      exclude: ['/api*', '/photo*', '/guess*', '/uploads*'], // Pas toucher API/Images
+    },),
     ScheduleModule.forRoot(),
     PhotoModule,
     GuessModule,
