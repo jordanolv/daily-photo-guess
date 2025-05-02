@@ -1,10 +1,10 @@
-import { IsBoolean, IsNumber, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateGuessDto {
   @ApiProperty()
   @IsString()
-  userId: string;
+  discordId: string;
 
   @ApiProperty()
   @IsString()

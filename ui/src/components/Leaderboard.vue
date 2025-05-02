@@ -4,7 +4,7 @@
     <ul class="bg-white/5 backdrop-blur-md rounded-xl shadow-md divide-y divide-white/10">
       <li
         v-for="(entry, index) in leaderboard"
-        :key="entry.userId"
+        :key="entry.discordId"
         class="px-5 py-3 flex justify-between items-center"
         :class="{
           'bg-yellow-400/10 text-yellow-300 font-bold': index === 0,
@@ -12,9 +12,12 @@
           'bg-orange-400/10 text-orange-300 font-semibold': index === 2
         }"
       >
-        <span>
-          #{{ index + 1 }} – <span class="italic">{{ entry.userId.slice(0, -4) }}</span>
-        </span>
+        <div class="flex items-center space-x-2">
+          <img v-if="entry.avatar" :src="entry.avatar" :alt="entry.username" class="w-6 h-6 rounded-full" />
+          <span>
+            #{{ index + 1 }} – <span class="italic">{{ entry.username }}</span>
+          </span>
+        </div>
         <span class="text-right">
           {{ entry.total }} réponse{{ entry.total > 1 ? 's' : '' }}
         </span>
@@ -27,7 +30,7 @@
 import { onMounted, ref } from 'vue'
 import { api } from '../composables/useApi'
 
-const leaderboard = ref<{ userId: string; total: number }[]>([])
+const leaderboard = ref<{ discordId: string; username: string; avatar: string; total: number }[]>([])
 
 onMounted(async () => {
   try {

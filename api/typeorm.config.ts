@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
-import { Photo } from './src/photo/photo.entity';
-import { Guess } from './src/guess/guess.entity';
+import { Photo } from './src/photo/entities/photo.entity';
+import { Guess } from './src/guess/entities/guess.entity';
 
 export default new DataSource({
   type: 'sqlite',

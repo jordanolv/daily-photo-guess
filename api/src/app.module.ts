@@ -1,5 +1,5 @@
 // src/app.module.ts
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as path from 'path';
@@ -10,13 +10,17 @@ import { GuessModule } from './guess/guess.module';
 import { Guess } from './guess/entities/guess.entity';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: path.resolve(__dirname, '..', '.env'), }),
+    ConfigModule.forRoot({ 
+      isGlobal: true, 
+      envFilePath: path.resolve(__dirname, '..', '..', '..', '.env'),
+    }),
 
     TypeOrmModule.forRoot({
       type: 'sqlite',
-      database: '/home/deploy/dbs/daily-photo-guess.sqlite',
+      database: process.env.DB_PATH || '/home/deploy/dbs/daily-photo-guess.sqlite',
       entities: [Photo, Guess],
       synchronize: true,
     }),
@@ -36,6 +40,7 @@ import { join } from 'path';
     ScheduleModule.forRoot(),
     PhotoModule,
     GuessModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

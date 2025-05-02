@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DailyHomeView from './views/DailyHomeView.vue'
 import AdminDashboard from './components/AdminDashboard.vue'
 import AdminLogin from './components/AdminLogin.vue'
+import AuthCallback from './views/AuthCallback.vue'
+import Home from './views/Home.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -9,7 +10,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: DailyHomeView  
+      component: Home,
     },
     {
       path: '/admin',
@@ -23,7 +24,12 @@ const router = createRouter({
       path: '/admin/login',
       name: 'admin-login',
       component: AdminLogin
-    }
+    },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: AuthCallback,
+    },
   ]
 })
 

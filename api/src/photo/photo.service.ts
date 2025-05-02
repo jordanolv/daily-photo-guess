@@ -2,13 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
-import { Photo, PhotoPeriod } from './entities/photo.entity';
+import { Photo } from './entities/photo.entity';
 import { Repository, IsNull } from 'typeorm';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { format } from 'date-fns';
 import { Cron } from '@nestjs/schedule';
-import { getTodayDate, getCurrentPeriod } from '../utils/date';
+import { getTodayDate } from '../utils/date';
 import { Guess } from '../guess/entities/guess.entity';
+
 @Injectable()
 export class PhotoService {
   private readonly logger = new Logger(PhotoService.name);
@@ -37,7 +38,7 @@ export class PhotoService {
 
   async findRandomWithoutDate(): Promise<Photo | null> {
     const photos = await this.photoRepository.find({
-      where: { date: IsNull(), period: IsNull() },
+      where: { date: IsNull() },
     });
 
     if (photos.length === 0) return null;
@@ -48,11 +49,10 @@ export class PhotoService {
 
   async generateTodayPhoto(): Promise<Photo | null> {
     const date = getTodayDate();
-    const period = getCurrentPeriod();
 
-    this.logger.log(`Tentative de génération de la photo du jour [${date} - ${period}]`);
+    this.logger.log(`Tentative de génération de la photo du jour [${date}]`);
 
-    const existing = await this.photoRepository.findOne({ where: { date, period } });
+    const existing = await this.photoRepository.findOne({ where: { date } });
     if (existing) {
       this.logger.log(`Photo déjà existante pour aujourd'hui : ${existing.imageUrl}`);
       return existing;
@@ -65,7 +65,6 @@ export class PhotoService {
     }
 
     random.date = date;
-    random.period = period;
 
     const saved = await this.photoRepository.save(random);
     this.logger.log(`✅ Photo du jour générée : ${saved.imageUrl} (solution: ${saved.solution})`);
@@ -75,30 +74,25 @@ export class PhotoService {
 
   async regenerateTodayPhoto(): Promise<Photo | null> {
     const date = getTodayDate();
-    const period = getCurrentPeriod();
   
-    const current = await this.photoRepository.findOne({ where: { date, period } });
+    const current = await this.photoRepository.findOne({ where: { date } });
   
     if (current) {
       current.date = null;
-      current.period = null;
       await this.photoRepository.save(current);
     }
   
-    await this.guessRepository.delete({ date, period });
+    await this.guessRepository.delete({ date });
     
     return this.generateTodayPhoto();
   }
 
   async findTodayPhoto(): Promise<Photo | null> {
     const date = getTodayDate();
-    const period = getCurrentPeriod();
-    
-    return this.photoRepository.findOne({ where: { date, period } });
+    return this.photoRepository.findOne({ where: { date } });
   }
 
-  @Cron('0 0 0,12 * * *') // ← à 00h00 et à 12h00 chaque jour
-  // @Cron('*/10 * * * * *') // test toutes les 10 secondes
+  @Cron('0 0 * * *') // À minuit chaque jour
   async handlePhotoGeneration() {
     this.logger.debug('⏰ Déclenchement automatique du cron de génération de photo');
     await this.generateTodayPhoto();
@@ -108,7 +102,7 @@ export class PhotoService {
     const result = await this.photoRepository
       .createQueryBuilder()
       .update()
-      .set({ date: null, period: null })
+      .set({ date: null })
       .execute();
   
     return result.affected || 0;

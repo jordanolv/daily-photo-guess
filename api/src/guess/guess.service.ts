@@ -5,7 +5,8 @@ import { Guess } from './entities/guess.entity';
 import { CreateGuessDto } from './dto/create-guess.dto';
 import { UpdateGuessDto } from './dto/update-guess.dto';
 import { PhotoService } from '../photo/photo.service';
-import { getTodayDate, getCurrentPeriod } from '../utils/date';
+import { getTodayDate } from '../utils/date';
+import { User } from '../user/entities/user.entity';
 
 type GuessResponse = {
   status: 'correct' | 'wrong';
@@ -19,20 +20,21 @@ export class GuessService {
   constructor(
     @InjectRepository(Guess)
     private guessRepository: Repository<Guess>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private photoService: PhotoService,
   ) {}
 
   async create(createGuessDto: CreateGuessDto): Promise<GuessResponse> {
-    const { userId, attempt } = createGuessDto;
+    const { discordId, attempt } = createGuessDto;
     const date = getTodayDate();
-    const period = getCurrentPeriod();
 
     const photo = await this.photoService.findTodayPhoto();
     if (!photo) {
       throw new NotFoundException('Photo du jour introuvable');
     }
 
-    let guess = await this.guessRepository.findOne({ where: { userId, date, period } });
+    let guess = await this.guessRepository.findOne({ where: { discordId, date } });
 
     if (guess?.found) {
       return {
@@ -45,16 +47,15 @@ export class GuessService {
 
     if (!guess) {
       guess = this.guessRepository.create({
-        userId,
+        discordId,
         date,
-        period,
         attemptCount: 0,
         found: false,
       });
     }
 
     if (guess.attemptCount >= 3) {
-      throw new BadRequestException('Tu as déjà utilisé tes 3 essais pour cette période 😬');
+      throw new BadRequestException('Tu as déjà utilisé tes 3 essais pour aujourd\'hui 😬');
     }
 
     guess.attemptCount++;
@@ -102,11 +103,10 @@ export class GuessService {
     await this.guessRepository.clear();
   }
 
-  async getUserForToday(userId: string) {
+  async getUserForToday(discordId: string) {
     const date = getTodayDate();
-    const period = getCurrentPeriod();
 
-    const guess = await this.guessRepository.findOne({ where: { userId, date, period } });
+    const guess = await this.guessRepository.findOne({ where: { discordId, date } });
 
     return {
       remainingAttempts: guess ? Math.max(0, 3 - guess.attemptCount) : 3,
@@ -116,22 +116,35 @@ export class GuessService {
 
   async countCorrectGuessesForToday(): Promise<number> {
     const date = getTodayDate();
-    const period = getCurrentPeriod();
 
     return this.guessRepository.count({
-      where: { date, period, found: true },
+      where: { date, found: true },
     });
   }
 
-  async getLeaderboard(): Promise<{ userId: string; total: number }[]> {
-    return this.guessRepository
+  async getLeaderboard(): Promise<{ discordId: string; username: string; avatar: string; total: number }[]> {
+    const results = await this.guessRepository
       .createQueryBuilder('guess')
-      .select('guess.userId', 'userId')
+      .select('guess.discordId', 'discordId')
       .addSelect('COUNT(*)', 'total')
       .where('guess.found = true')
-      .groupBy('guess.userId')
+      .groupBy('guess.discordId')
       .orderBy('total', 'DESC')
       .limit(10)
       .getRawMany();
+
+    // Récupérer les informations utilisateur pour chaque résultat
+    const leaderboard = await Promise.all(
+      results.map(async (result) => {
+        const user = await this.userRepository.findOne({ where: { discordId: result.discordId } });
+        return {
+          ...result,
+          username: user?.username || 'Utilisateur inconnu',
+          avatar: user?.avatar || null,
+        };
+      })
+    );
+
+    return leaderboard;
   }
 }
