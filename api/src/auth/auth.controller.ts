@@ -20,6 +20,7 @@ export class AuthController {
 
   @Get('status')
   async getStatus(@Req() req: any) {
+    console.log(req.user);
     if (!req.user) {
       return { authenticated: false };
     }

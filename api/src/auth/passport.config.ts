@@ -16,6 +16,7 @@ export class PassportConfig {
     passport.deserializeUser(async (id: number, done) => {
       try {
         const user = await this.authService.findById(id);
+        console.log('user',user);
         done(null, user);
       } catch (err) {
         done(err, null);

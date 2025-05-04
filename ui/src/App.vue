@@ -10,6 +10,6 @@ body {
   min-height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  background: #1a1a2e;
+  /* background: #1a1a2e; */
 }
 </style>

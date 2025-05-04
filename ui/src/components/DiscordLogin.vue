@@ -6,12 +6,9 @@
 </template>
 
 <script setup lang="ts">
-console.log('Toutes les variables env:', import.meta.env)
-console.log('VITE_API_URL:', import.meta.env.VITE_API_URL)
 
 const handleLogin = () => {
   const redirectUrl = `${import.meta.env.VITE_API_URL}/auth/discord`;
-  console.log('Redirection vers:', redirectUrl);
   window.location.href = redirectUrl;
 };
 </script>

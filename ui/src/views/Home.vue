@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 font-['Press_Start_2P']">
-    <div class="w-full max-w-[800px] bg-[#1a1a1a] border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff,inset_0_0_10px_#ff00ff] p-4 relative">
+  <div class="h-[100dvh] flex items-center justify-center p-4 font-['Press_Start_2P']" style="background: url('/src/assets/bg.png') center center / cover no-repeat, #0a0a0a;">
+    <div class="w-full max-w-[800px] h-fit flex flex-col bg-[#1a1a1a] border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff,inset_0_0_10px_#ff00ff] p-4 relative">
       <!-- Login Button -->
       <div class="absolute top-4 right-4 z-10">
         <UserStatus />
@@ -13,9 +13,9 @@
       </div>
 
       <!-- Game Content -->
-      <div class="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-4 flex-1 overflow-hidden">
         <!-- Main Section -->
-        <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-4 overflow-auto">
           <!-- Photo Frame -->
           <div class="aspect-square bg-black border-4 border-[#ff00ff] shadow-[0_0_10px_#ff00ff,inset_0_0_5px_#ff00ff] p-2 flex items-center justify-center">
             <img 
@@ -25,8 +25,15 @@
             />
           </div>
 
+          <!-- Feedback Section -->
+          <div v-if="feedback" class="bg-black border-4 border-[#ff00ff] shadow-[0_0_10px_#ff00ff,inset_0_0_5px_#ff00ff] p-2">
+            <div class="text-center" :class="feedbackClass">
+              {{ feedback }}
+            </div>
+          </div>
+
           <!-- Input Section -->
-          <div class="bg-black border-4 border-[#ff00ff] shadow-[0_0_10px_#ff00ff,inset_0_0_5px_#ff00ff] p-2">
+          <div v-if="(remaining ?? 0) > 0" class="bg-black border-4 border-[#ff00ff] shadow-[0_0_10px_#ff00ff,inset_0_0_5px_#ff00ff] p-2">
             <div class="text-[#ff00ff] text-xs text-center mb-2">TA PROPOSITION</div>
             <div class="flex gap-2">
               <input 
@@ -70,8 +77,6 @@ import { api } from '../composables/useApi'
 import UserStatus from '../components/UserStatus.vue'
 import Leaderboard from '../components/Leaderboard.vue'
 
-console.log('API URL:', import.meta.env.VITE_API_URL);
-
 // 🎯 Génère un userId unique
 function generateUserId(): string {
   const adjectives = ['happy', 'cool', 'tiny', 'fuzzy', 'silly', 'brave', 'sleepy', 'swift']
@@ -92,10 +97,12 @@ if (!userId) {
 // Réactifs
 const today = ref<any>(null)
 const guess = ref('')
-const feedback = ref('')
+const feedback = ref('') // au lieu de 'Vous avez 3 essais'
 const totalCorrect = ref(0)
+const LOCAL_ATTEMPTS_KEY = 'dpguess_remaining_attempts'
 const remaining = ref<number | null>(null)
 const alreadyFound = ref(false)
+const isAuthenticated = ref(false)
 
 const feedbackClass = computed(() =>
   feedback.value.startsWith('Bravo') ? 'text-green-600' : 'text-red-600'
@@ -109,19 +116,37 @@ async function loadToday() {
     const { data } = await api.get('/photo/today')
     today.value = {
       ...data,
-      // imageUrl: `${import.meta.env.VITE_API_URL}${data.imageUrl}`
-      imageUrl: 'https://cdn.discordapp.com/attachments/685655650923053122/1364960965405315132/ChatGPT_Image_24_avr._2025_15_47_22.png?ex=6814ccf5&is=68137b75&hm=75104d3f287723472d7d4008f0b7dd6f581b12fac63256a326c9e32f72f8576b&'
+      imageUrl: `${import.meta.env.VITE_API_URL}${data.imageUrl}`
     }
 
     const { data: correctCount } = await api.get<number>('/guess/today/correct-count')
     totalCorrect.value = correctCount
 
-    const { data: status } = await api.get(`/guess/today/status/${userId}`)
-    remaining.value = status.remainingAttempts
-    alreadyFound.value = status.alreadyFound
+    // Vérifier si l'utilisateur est connecté
+    const { data: authStatus } = await api.get('/auth/status')
+    isAuthenticated.value = authStatus.authenticated
+    console.log(authStatus);
 
-    if (status.alreadyFound) {
+    if (isAuthenticated.value) {
+      // Utilisateur connecté avec Discord
+      const { data: status } = await api.get(`/guess/today/status/${authStatus.user.id}`)
+      remaining.value = status.remainingAttempts
+      alreadyFound.value = status.alreadyFound
+    } else {
+      // Utilisateur non connecté, on lit le localStorage
+      const stored = localStorage.getItem(LOCAL_ATTEMPTS_KEY)
+      let attempts = stored !== null ? parseInt(stored) : 3
+      if (isNaN(attempts)) attempts = 3
+      remaining.value = attempts
+      alreadyFound.value = false
+    }
+
+    if (alreadyFound.value) {
       feedback.value = 'Bravo 🎉 bonne réponse !'
+    } else if (!isAuthenticated.value && remaining.value === 0) {
+      feedback.value = "Plus d'essais restants !"
+    } else if (!isAuthenticated.value) {
+      feedback.value = `Vous avez ${remaining.value} essai${remaining.value && remaining.value > 1 ? 's' : ''}`
     }
   } catch (err: any) {
     console.error('Erreur loadToday:', err)
@@ -131,23 +156,44 @@ async function loadToday() {
 
 // 📤 Soumission de la proposition
 async function submit() {
-  if (!guess.value.trim()) return
+  if (!guess.value.trim() || remaining.value === 0) return
 
+  console.log(isAuthenticated.value);
   try {
-    const { data } = await api.post('/guess', {
-      userId,
-      attempt: guess.value
-    })
+    if (isAuthenticated.value) {
+      // Utilisateur connecté avec Discord
+      const { data } = await api.post('/guess', {
+        discordId: userId,
+        attempt: guess.value
+      })
 
-    if (data.status === 'correct') {
-      feedback.value = 'Bravo 🎉 bonne réponse !'
-      totalCorrect.value++
-      alreadyFound.value = true
-    } else if (data.status === 'wrong') {
-      feedback.value = `Raté 😬 il te reste ${data.remainingAttempts} essai${data.remainingAttempts > 1 ? 's' : ''}`
+      if (data.status === 'correct') {
+        feedback.value = 'Bravo 🎉 bonne réponse !'
+        totalCorrect.value++
+        alreadyFound.value = true
+      } else if (data.status === 'wrong') {
+        feedback.value = `Raté 😬 il te reste ${data.remainingAttempts} essai${data.remainingAttempts > 1 ? 's' : ''}`
+      }
+
+      remaining.value = data.remainingAttempts
+    } else {
+      // Utilisateur non connecté, vérification locale
+      const isCorrect = today.value.solution.trim().toLowerCase() === guess.value.trim().toLowerCase()
+      console.log(isCorrect);
+      if (isCorrect) {
+        feedback.value = 'Bravo 🎉 bonne réponse !'
+        alreadyFound.value = true
+        totalCorrect.value++
+      } else {
+        remaining.value = Math.max(0, (remaining.value || 3) - 1)
+        // MAJ localStorage
+        localStorage.setItem(LOCAL_ATTEMPTS_KEY, String(remaining.value))
+        feedback.value = remaining.value === 0
+          ? "Plus d'essais restants !"
+          : `Raté 😬 il te reste ${remaining.value} essai${remaining.value > 1 ? 's' : ''}`
+      }
     }
 
-    remaining.value = data.remainingAttempts
     guess.value = ''
   } catch (err: any) {
     feedback.value = err.response?.data?.message || 'Erreur lors de la soumission'

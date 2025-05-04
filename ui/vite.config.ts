@@ -7,9 +7,6 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
   // Charge les variables d'environnement depuis le fichier .env à la racine du projet
   const env = loadEnv(mode, path.resolve(__dirname, '..'), '')
-  
-  console.log('Current directory:', process.cwd())
-  console.log('Environment variables loaded:', env)
 
   return {
     plugins: [vue(), tailwindcss()],
